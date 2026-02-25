@@ -22,15 +22,22 @@ const port = process.env.PORT || 5000;
 
 const allowedOrigins = [
     'http://localhost:5173',
+    'http://localhost:3000',
     process.env.FRONTEND_URL,
-].filter(Boolean).map(o => o.replace(/\/$/, "")); // Trim trailing slashes
+].filter(Boolean).map(o => o.replace(/\/$/, ""));
 
 app.use(cors({
     origin: (origin, callback) => {
-        // Remove trailing slash from incoming origin for comparison
-        const normalizedOrigin = origin ? origin.replace(/\/$/, "") : null;
+        if (!origin) return callback(null, true);
 
-        if (!origin || allowedOrigins.includes(normalizedOrigin)) {
+        const normalizedOrigin = origin.replace(/\/$/, "");
+
+        // Match specific origins or any Vercel preview domain for this project
+        const isAllowed = allowedOrigins.includes(normalizedOrigin) ||
+            (normalizedOrigin.startsWith('https://sponsorship-intelligence') &&
+                normalizedOrigin.endsWith('.vercel.app'));
+
+        if (isAllowed) {
             callback(null, true);
         } else {
             console.error(`[CORS REJECTED] Origin: ${origin}. Allowed: [${allowedOrigins.join(', ')}]`);
