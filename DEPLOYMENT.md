@@ -13,9 +13,10 @@ We recommend using **Render Managed PostgreSQL**, **Supabase**, or **Neon**.
 
 ## 2. Backend Deployment (Render)
 1. **New Web Service**: Connect your GitHub repository.
-2. **Environment**: `Node`.
-3. **Build Command**: `npm install && npm run build` (This runs `prisma generate`).
-4. **Start Command**: `npm start` (This runs migrations and starts the server).
+2. **Root Directory**: `sponsorship-backend` (CRITICAL: Scroll down to find this setting).
+3. **Environment**: `Node`.
+4. **Build Command**: `npm install && npm run build`
+5. **Start Command**: `npm start`
 5. **Environment Variables**:
    - `DATABASE_URL`: Your PostgreSQL connection string.
    - `JWT_SECRET`: A long, random string (e.g., generated with `openssl rand -base64 32`).
