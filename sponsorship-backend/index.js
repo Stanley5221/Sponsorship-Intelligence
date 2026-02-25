@@ -1,4 +1,9 @@
-require("dotenv").config();
+const dotenv = require("dotenv");
+const res = dotenv.config();
+console.log(`[DEBUG] Dotenv loaded: ${!res.error}`);
+console.log(`[DEBUG] NODE_ENV: ${process.env.NODE_ENV}`);
+console.log(`[DEBUG] JWT_SECRET present: ${!!process.env.JWT_SECRET}`);
+
 const express = require("express");
 const cors = require("cors");
 const cron = require('node-cron');
@@ -370,5 +375,13 @@ app.use((err, req, res, next) => {
 });
 
 app.listen(port, () => {
+    const JWT_SECRET = process.env.JWT_SECRET;
+    const NODE_ENV = process.env.NODE_ENV;
+
+    if (!JWT_SECRET && NODE_ENV === 'production') {
+        console.warn('⚠️ WARNING: JWT_SECRET is missing in production environment!');
+    }
+
+    const SECRET = JWT_SECRET || 'dev-secret-key-only';
     console.log(`🚀 Server running on port ${port}`);
 });
