@@ -1,9 +1,4 @@
-const dotenv = require("dotenv");
-const res = dotenv.config();
-console.log(`[DEBUG] Dotenv loaded: ${!res.error}`);
-console.log(`[DEBUG] NODE_ENV: ${process.env.NODE_ENV}`);
-console.log(`[DEBUG] JWT_SECRET present: ${!!process.env.JWT_SECRET}`);
-
+require("dotenv").config();
 const express = require("express");
 const cors = require("cors");
 const cron = require('node-cron');

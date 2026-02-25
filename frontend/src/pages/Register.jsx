@@ -1,10 +1,8 @@
 import React, { useState } from 'react';
-import axios from 'axios';
+import api from '../services/api';
 import { useNavigate, Link } from 'react-router-dom';
 import { toast } from 'react-hot-toast';
 import { UserPlus, Mail, Lock } from 'lucide-react';
-
-const API_URL = 'http://localhost:5000/api';
 
 export default function Register() {
     const [email, setEmail] = useState('');
@@ -19,7 +17,7 @@ export default function Register() {
 
         setLoading(true);
         try {
-            await axios.post(`${API_URL}/auth/register`, { email, password });
+            await api.post('/auth/register', { email, password });
             toast.success('Registration successful! Please sign in.');
             navigate('/login');
         } catch (error) {

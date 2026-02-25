@@ -1,11 +1,9 @@
 import React, { useState } from 'react';
-import axios from 'axios';
+import api from '../services/api';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { toast } from 'react-hot-toast';
 import { LogIn, Mail, Lock } from 'lucide-react';
-
-const API_URL = 'http://localhost:5000/api';
 
 export default function Login() {
     const [email, setEmail] = useState('');
@@ -18,7 +16,7 @@ export default function Login() {
         e.preventDefault();
         setLoading(true);
         try {
-            const response = await axios.post(`${API_URL}/auth/login`, { email, password });
+            const response = await api.post('/auth/login', { email, password });
             login(response.data.token, response.data.user);
             toast.success('Welcome back!');
             navigate('/dashboard');

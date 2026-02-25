@@ -3,8 +3,6 @@ import api from '../services/api'
 import { Plus, Trash2, Edit2, Check, X, Calendar, Briefcase, FileText, Clock, AlertCircle, Building2, Brain } from 'lucide-react'
 import { toast } from 'react-hot-toast'
 
-const API_URL = 'http://localhost:5000/api'
-
 function Applications() {
     const [applications, setApplications] = useState([])
     const [companies, setCompanies] = useState([])

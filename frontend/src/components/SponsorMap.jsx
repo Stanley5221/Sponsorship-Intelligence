@@ -29,8 +29,6 @@ let DefaultIcon = L.icon({
 })
 L.Marker.prototype.options.icon = DefaultIcon
 
-const API_URL = 'http://localhost:5000/api'
-
 // Custom hook to handle map centering/zooming
 function MapRefresher({ center, zoom }) {
     const map = useMap()

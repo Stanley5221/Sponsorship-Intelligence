@@ -4,7 +4,7 @@ const JWT_SECRET = process.env.JWT_SECRET;
 const NODE_ENV = process.env.NODE_ENV;
 
 if (!JWT_SECRET && NODE_ENV === 'production') {
-    console.warn('⚠️ WARNING: JWT_SECRET is missing in production environment!');
+    throw new Error('FATAL: JWT_SECRET environment variable is not defined.');
 }
 
 const SECRET = JWT_SECRET || 'dev-secret-key-only';
