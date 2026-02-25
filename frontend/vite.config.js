@@ -34,7 +34,7 @@ export default defineConfig({
         globPatterns: ['**/*.{js,css,html,ico,png,svg}'],
         runtimeCaching: [
           {
-            urlPattern: /^http:\/\/localhost:5000\/api\/.*/i,
+            urlPattern: /^https?:\/\/.*\/api\/.*/i,
             handler: 'NetworkFirst',
             options: {
               cacheName: 'api-cache',
@@ -51,4 +51,20 @@ export default defineConfig({
       }
     })
   ],
+  build: {
+    // Raise the warning threshold to 600kb (Chart.js is inherently large)
+    chunkSizeWarningLimit: 600,
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          // React core
+          'vendor-react': ['react', 'react-dom', 'react-router-dom'],
+          // Chart.js (biggest culprit — isolate it)
+          'vendor-charts': ['chart.js', 'react-chartjs-2'],
+          // UI utilities
+          'vendor-ui': ['lucide-react', 'react-hot-toast'],
+        }
+      }
+    }
+  }
 })
