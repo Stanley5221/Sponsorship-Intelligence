@@ -1,0 +1,15 @@
+# Node
+node_modules/
+dist/
+build/
+.env
+.env.local
+.env.production
+
+# Prisma
+dev.db
+dev.db-journal
+
+# OS
+.DS_Store
+Thumbs.db
