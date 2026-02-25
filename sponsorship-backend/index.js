@@ -124,9 +124,34 @@ app.post("/api/auth/login", async (req, res) => {
     }
 });
 
+// Diagnostic endpoint for production
+app.get("/api/diag", async (req, res) => {
+    try {
+        const count = await prisma.company.count();
+        const sample = await prisma.company.findFirst();
+        res.json({
+            success: true,
+            count,
+            sample: sample ? { id: sample.id, name: sample.name } : null,
+            env: process.env.NODE_ENV,
+            timestamp: new Date()
+        });
+    } catch (error) {
+        res.status(500).json({
+            success: false,
+            error: error.message,
+            stack: process.env.NODE_ENV === 'production' ? undefined : error.stack
+        });
+    }
+});
+
 // API Endpoint to get companies with filters
 app.get("/api/companies", async (req, res) => {
-    const { town, route, rating, page = 1, limit = 50 } = req.query;
+    let { town, route, rating, page, limit } = req.query;
+
+    // Sanitize pagination
+    const pageNum = Math.max(1, parseInt(page) || 1);
+    const limitNum = Math.min(100, Math.max(1, parseInt(limit) || 12));
 
     const where = {};
     if (town) where.town = { contains: town, mode: "insensitive" };
@@ -137,8 +162,8 @@ app.get("/api/companies", async (req, res) => {
         const [companies, total] = await Promise.all([
             prisma.company.findMany({
                 where,
-                skip: (Number(page) - 1) * Number(limit),
-                take: Number(limit),
+                skip: (pageNum - 1) * limitNum,
+                take: limitNum,
                 orderBy: { name: "asc" },
             }),
             prisma.company.count({ where }),
@@ -148,17 +173,17 @@ app.get("/api/companies", async (req, res) => {
             companies,
             pagination: {
                 total,
-                page: Number(page),
-                limit: Number(limit),
-                totalPages: Math.ceil(total / Number(limit)),
+                page: pageNum,
+                limit: limitNum,
+                totalPages: Math.ceil(total / limitNum),
             },
         });
     } catch (error) {
-        console.error("API Error:", error);
+        console.error("API Error fetching companies:", error);
         res.status(500).json({
             error: "Failed to fetch companies",
             message: error.message,
-            stack: process.env.NODE_ENV === 'production' ? undefined : error.stack
+            query: where
         });
     }
 });
