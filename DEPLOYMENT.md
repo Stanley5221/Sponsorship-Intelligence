@@ -28,11 +28,10 @@ We recommend using **Render Managed PostgreSQL**, **Supabase**, or **Neon**.
 
 ## 3. Frontend Deployment (Vercel)
 1. **New Project**: Connect your GitHub repository.
-2. **Framework Preset**: `Vite`.
-3. **Root Directory**: `frontend`.
-4. **Environment Variables**:
+2. **Settings**: I've added a [vercel.json](file:///c:/Users/stanl/OneDrive/Desktop/STANLEY/Stanley%20Files/Stanley%20CVs/UK/vercel.json) at the root, so Vercel should automatically detect the `frontend` folder.
+3. **Environment Variables**:
    - `VITE_API_BASE_URL`: Your Render backend URL + `/api` (e.g., `https://your-backend.onrender.com/api`).
-5. **Build & Output Settings**: Default (Vercel detects Vite automatically).
+4. **Deploy**: Click Deploy. Vercel will now find the output in `frontend/dist`.
 
 ---
 
