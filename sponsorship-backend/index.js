@@ -23,13 +23,17 @@ const port = process.env.PORT || 5000;
 const allowedOrigins = [
     'http://localhost:5173',
     process.env.FRONTEND_URL,
-].filter(Boolean);
+].filter(Boolean).map(o => o.replace(/\/$/, "")); // Trim trailing slashes
 
 app.use(cors({
     origin: (origin, callback) => {
-        if (!origin || allowedOrigins.includes(origin)) {
+        // Remove trailing slash from incoming origin for comparison
+        const normalizedOrigin = origin ? origin.replace(/\/$/, "") : null;
+
+        if (!origin || allowedOrigins.includes(normalizedOrigin)) {
             callback(null, true);
         } else {
+            console.error(`[CORS REJECTED] Origin: ${origin}. Allowed: [${allowedOrigins.join(', ')}]`);
             callback(new Error('Not allowed by CORS'));
         }
     },
