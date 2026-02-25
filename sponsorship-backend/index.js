@@ -37,7 +37,7 @@ const { PrismaClient } = require("@prisma/client");
 
 const pool = new Pool({
     connectionString: process.env.DATABASE_URL,
-    ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false
+    ssl: { rejectUnauthorized: false }
 });
 const adapter = new PrismaPg(pool);
 const prisma = new PrismaClient({ adapter });
@@ -155,7 +155,11 @@ app.get("/api/companies", async (req, res) => {
         });
     } catch (error) {
         console.error("API Error:", error);
-        res.status(500).json({ error: "Failed to fetch companies" });
+        res.status(500).json({
+            error: "Failed to fetch companies",
+            message: error.message,
+            stack: process.env.NODE_ENV === 'production' ? undefined : error.stack
+        });
     }
 });
 
