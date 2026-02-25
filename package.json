@@ -1,5 +1,11 @@
 {
-  "dependencies": {
-    "express-validator": "^7.3.1"
+  "name": "sponsorship-intelligence-platform",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "start": "npm start --prefix sponsorship-backend",
+    "build": "npm install --prefix sponsorship-backend && npm run build --prefix sponsorship-backend",
+    "dev:backend": "npm run dev --prefix sponsorship-backend",
+    "dev:frontend": "npm run dev --prefix frontend"
   }
 }
