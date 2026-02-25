@@ -3,9 +3,8 @@
   "version": "1.0.0",
   "private": true,
   "scripts": {
-    "start": "npm start --prefix sponsorship-backend",
-    "build": "npm install --prefix sponsorship-backend && npm run build --prefix sponsorship-backend",
-    "dev:backend": "npm run dev --prefix sponsorship-backend",
-    "dev:frontend": "npm run dev --prefix frontend"
+    "install-backend": "cd sponsorship-backend && npm install",
+    "build": "cd sponsorship-backend && npm install && npx prisma generate",
+    "start": "cd sponsorship-backend && npx prisma migrate deploy && node index.js"
   }
 }
