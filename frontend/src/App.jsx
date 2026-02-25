@@ -8,6 +8,7 @@ import SponsorMap from './components/SponsorMap'
 import OfflineBanner from './components/OfflineBanner'
 import Login from './pages/Login'
 import Register from './pages/Register'
+import ApplicationDetails from './components/ApplicationDetails'
 import ProtectedRoute from './components/ProtectedRoute'
 import { AuthProvider } from './context/AuthContext'
 
@@ -41,6 +42,9 @@ function App() {
               } />
               <Route path="/applications" element={
                 <ProtectedRoute><Applications /></ProtectedRoute>
+              } />
+              <Route path="/applications/:id" element={
+                <ProtectedRoute><ApplicationDetails /></ProtectedRoute>
               } />
             </Routes>
           </main>

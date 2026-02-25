@@ -1,6 +1,8 @@
 import { useState, useEffect } from 'react'
 import api from '../services/api'
-import { Search, MapPin, Award, ChevronLeft, ChevronRight, Loader2, Building2, Route } from 'lucide-react'
+import { Search, MapPin, Award, ChevronLeft, ChevronRight, Loader2, Building2, Route, PlusCircle, ExternalLink } from 'lucide-react'
+import Modal from './Modal'
+import ApplicationForm from './ApplicationForm'
 
 function SkeletonRow() {
     return (
@@ -9,6 +11,7 @@ function SkeletonRow() {
             <td className="px-6 py-5"><div className="h-4 bg-gray-100 rounded-full w-24" /></td>
             <td className="px-6 py-5"><div className="h-4 bg-gray-100 rounded-full w-32" /></td>
             <td className="px-6 py-5"><div className="h-4 bg-gray-100 rounded-full w-8 mx-auto" /></td>
+            <td className="px-6 py-5"><div className="h-8 bg-gray-100 rounded-lg w-20" /></td>
         </tr>
     )
 }
@@ -22,6 +25,7 @@ function SkeletonCard() {
                 <div className="h-6 bg-gray-100 rounded-full w-16" />
                 <div className="h-6 bg-gray-100 rounded-full w-20" />
             </div>
+            <div className="h-10 bg-gray-100 rounded-xl w-full mt-4" />
         </div>
     )
 }
@@ -32,6 +36,11 @@ function Companies() {
     const [loading, setLoading] = useState(true)
     const [town, setTown] = useState('')
     const [rating, setRating] = useState('')
+
+    // CRM Modal State
+    const [isModalOpen, setIsModalOpen] = useState(false)
+    const [selectedCompany, setSelectedCompany] = useState(null)
+    const [isExternalCreation, setIsExternalCreation] = useState(false)
 
     const fetchCompanies = async (page = 1) => {
         setLoading(true)
@@ -52,16 +61,42 @@ function Companies() {
         fetchCompanies()
     }, [town, rating])
 
+    const handleApply = (company) => {
+        setSelectedCompany(company)
+        setIsExternalCreation(false)
+        setIsModalOpen(true)
+    }
+
+    const handleAddExternal = () => {
+        setSelectedCompany(null)
+        setIsExternalCreation(true)
+        setIsModalOpen(true)
+    }
+
+    const handleSuccess = () => {
+        setIsModalOpen(false)
+        // Optionally redirect to tracker or just stay here
+    }
+
     return (
         <div className="space-y-6 animate-in">
             {/* Page Header */}
-            <header className="space-y-1">
-                <h1 className="text-2xl sm:text-3xl font-black text-gray-900">
-                    Sponsorship Intelligence
-                </h1>
-                <p className="text-sm sm:text-base text-gray-500">
-                    Search all UKVI licensed sponsors across the UK
-                </p>
+            <header className="flex flex-col sm:flex-row sm:items-end justify-between gap-4">
+                <div className="space-y-1">
+                    <h1 className="text-2xl sm:text-3xl font-black text-gray-900">
+                        Sponsorship Intelligence
+                    </h1>
+                    <p className="text-sm sm:text-base text-gray-500">
+                        Search all UKVI licensed sponsors across the UK
+                    </p>
+                </div>
+                <button
+                    onClick={handleAddExternal}
+                    className="inline-flex items-center justify-center gap-2 px-6 py-3 bg-gray-900 text-white rounded-2xl font-black text-sm shadow-xl shadow-gray-900/10 hover:shadow-gray-900/20 hover:-translate-y-0.5 transition-all active:scale-95 whitespace-nowrap"
+                >
+                    <PlusCircle className="w-4 h-4" />
+                    ADD EXTERNAL COMPANY
+                </button>
             </header>
 
             {/* Filters */}
@@ -107,6 +142,7 @@ function Companies() {
                                 <th className="px-6 py-4 text-xs font-bold text-gray-400 uppercase tracking-wider">Location</th>
                                 <th className="px-6 py-4 text-xs font-bold text-gray-400 uppercase tracking-wider">Route</th>
                                 <th className="px-6 py-4 text-xs font-bold text-gray-400 uppercase tracking-wider text-center">Rating</th>
+                                <th className="px-6 py-4 text-xs font-bold text-gray-400 uppercase tracking-wider text-right">Action</th>
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-gray-50">
@@ -130,11 +166,19 @@ function Companies() {
                                             <td className="px-4 py-4 text-center">
                                                 <RatingBadge rating={company.rating} />
                                             </td>
+                                            <td className="px-6 py-4 text-right">
+                                                <button
+                                                    onClick={() => handleApply(company)}
+                                                    className="px-4 py-1.5 bg-white border border-gray-200 text-gray-900 rounded-xl text-xs font-black shadow-sm hover:border-blue-500 hover:text-blue-600 transition-all hover:-translate-y-0.5 active:scale-95"
+                                                >
+                                                    APPLY / TRACK
+                                                </button>
+                                            </td>
                                         </tr>
                                     ))
                                     : (
                                         <tr>
-                                            <td colSpan="4">
+                                            <td colSpan="5">
                                                 <EmptyState />
                                             </td>
                                         </tr>
@@ -167,14 +211,18 @@ function Companies() {
                                     </div>
                                     <RatingBadge rating={company.rating} />
                                 </div>
-                                {company.route && (
-                                    <div className="mt-3 pt-3 border-t border-gray-50">
-                                        <span className="inline-flex items-center gap-1.5 text-xs text-gray-500 bg-gray-50 px-3 py-1.5 rounded-lg">
-                                            <Building2 className="w-3 h-3" />
-                                            {company.route}
-                                        </span>
-                                    </div>
-                                )}
+                                <div className="mt-3 pt-3 border-t border-gray-50 flex items-center justify-between gap-2">
+                                    <span className="inline-flex items-center gap-1.5 text-xs text-gray-500 bg-gray-50 px-3 py-1.5 rounded-lg truncate">
+                                        <Building2 className="w-3 h-3" />
+                                        {company.route || 'Sponsor'}
+                                    </span>
+                                    <button
+                                        onClick={() => handleApply(company)}
+                                        className="px-4 py-2 bg-gray-900 text-white rounded-xl text-[10px] font-black shadow-lg shadow-gray-200 active:scale-95 transition-all"
+                                    >
+                                        TRACK APPLICATION
+                                    </button>
+                                </div>
                             </div>
                         ))
                         : <EmptyState mobile />
@@ -183,15 +231,30 @@ function Companies() {
                     <Pagination pagination={pagination} loading={loading} onPage={fetchCompanies} mobile />
                 )}
             </div>
+
+            {/* CRM Modal */}
+            <Modal
+                isOpen={isModalOpen}
+                onClose={() => setIsModalOpen(false)}
+                title={isExternalCreation ? "Add External Application" : "Track Application"}
+            >
+                <ApplicationForm
+                    company={selectedCompany}
+                    isExternalCreation={isExternalCreation}
+                    onSuccess={handleSuccess}
+                    onCancel={() => setIsModalOpen(false)}
+                />
+            </Modal>
         </div>
     )
 }
 
 function RatingBadge({ rating }) {
+    if (!rating) return null
     return (
         <span className={`inline-flex items-center justify-center px-2.5 py-0.5 text-xs font-bold rounded-full ${rating === 'A'
-                ? 'bg-emerald-100 text-emerald-700'
-                : 'bg-amber-100 text-amber-700'
+            ? 'bg-emerald-100 text-emerald-700'
+            : 'bg-amber-100 text-amber-700'
             }`}>
             {rating}
         </span>

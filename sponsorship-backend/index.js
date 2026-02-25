@@ -163,11 +163,15 @@ app.post(
     "/api/applications",
     authenticateJWT,
     [
-        body("companyId").isInt(),
-        body("jobRole").notEmpty().trim(),
-        body("status").notEmpty().trim(),
-        body("dateApplied").isISO8601(),
+        body("companyId").optional().isInt(),
+        body("isExternalCompany").optional().isBoolean(),
+        body("companyData").optional().isObject(),
+        body("role").notEmpty().trim(),
+        body("status").isIn(['APPLIED', 'INTERVIEW', 'OFFER', 'REJECTED', 'NO_RESPONSE', 'WITHDRAWN']),
+        body("appliedDate").optional().isISO8601(),
         body("followUpDate").optional({ checkFalsy: true }).isISO8601(),
+        body("salary").optional().trim(),
+        body("externalWebsite").optional().trim(),
         body("notes").optional().trim(),
         body("cvVersion").optional().trim(),
     ],
@@ -176,18 +180,52 @@ app.post(
         if (!errors.isEmpty()) return res.status(400).json({ errors: errors.array() });
 
         try {
+            let companyId = req.body.companyId;
+
+            // Handle External Company Creation
+            if (req.body.isExternalCompany && req.body.companyData) {
+                const newCompany = await prisma.company.create({
+                    data: {
+                        name: req.body.companyData.name,
+                        town: req.body.companyData.town,
+                        industry: req.body.companyData.industry,
+                        website: req.body.companyData.website,
+                        logoUrl: req.body.companyData.logoUrl,
+                        isExternal: true,
+                        createdBy: req.user.id
+                    }
+                });
+                companyId = newCompany.id;
+            }
+
+            if (!companyId) return res.status(400).json({ error: "Company ID or external company data required" });
+
             const application = await prisma.application.create({
                 data: {
-                    company: { connect: { id: req.body.companyId } },
+                    company: { connect: { id: companyId } },
                     user: { connect: { id: req.user.id } },
-                    jobRole: req.body.jobRole,
-                    status: req.body.status,
-                    dateApplied: new Date(req.body.dateApplied),
+                    role: req.body.role,
+                    status: req.body.status || 'APPLIED',
+                    appliedDate: req.body.appliedDate ? new Date(req.body.appliedDate) : new Date(),
                     followUpDate: req.body.followUpDate ? new Date(req.body.followUpDate) : null,
+                    salary: req.body.salary,
+                    externalWebsite: req.body.externalWebsite,
                     notes: req.body.notes,
                     cvVersion: req.body.cvVersion,
                 },
+                include: { company: true }
             });
+
+            // Add initial timeline update if notes exist
+            if (req.body.notes) {
+                await prisma.applicationUpdate.create({
+                    data: {
+                        applicationId: application.id,
+                        note: `Initial Note: ${req.body.notes}`
+                    }
+                });
+            }
+
             res.status(201).json(application);
         } catch (error) {
             console.error("Create Application Error:", error);
@@ -248,17 +286,41 @@ app.get("/api/predict/:companyId", authenticateJWT, async (req, res) => {
     }
 });
 
-// LIST All Applications
+// LIST All Applications (User-specific)
 app.get("/api/applications", authenticateJWT, async (req, res) => {
     try {
         const applications = await prisma.application.findMany({
             where: { userId: req.user.id },
             include: { company: true },
-            orderBy: { createdAt: "desc" },
+            orderBy: { appliedDate: "desc" },
         });
         res.json(applications);
     } catch (error) {
         res.status(500).json({ error: "Failed to fetch applications" });
+    }
+});
+
+// GET Upcoming Follow-ups
+app.get("/api/applications/followups/upcoming", authenticateJWT, async (req, res) => {
+    try {
+        const sevenDaysFromNow = new Date();
+        sevenDaysFromNow.setDate(sevenDaysFromNow.getDate() + 7);
+
+        const followups = await prisma.application.findMany({
+            where: {
+                userId: req.user.id,
+                followUpDate: {
+                    not: null,
+                    lte: sevenDaysFromNow
+                },
+                followUpCompleted: false
+            },
+            include: { company: true },
+            orderBy: { followUpDate: "asc" }
+        });
+        res.json(followups);
+    } catch (error) {
+        res.status(500).json({ error: "Failed to fetch follow-ups" });
     }
 });
 
@@ -331,7 +393,10 @@ app.get("/api/applications/:id", authenticateJWT, async (req, res) => {
                 id: parseInt(req.params.id),
                 userId: req.user.id
             },
-            include: { company: true },
+            include: {
+                company: true,
+                updates: { orderBy: { createdAt: 'desc' } }
+            },
         });
         if (!application) return res.status(404).json({ error: "Application not found" });
         res.json(application);
@@ -355,13 +420,67 @@ app.put("/api/applications/:id", authenticateJWT, async (req, res) => {
                 status: req.body.status,
                 notes: req.body.notes,
                 followUpDate: req.body.followUpDate ? new Date(req.body.followUpDate) : undefined,
-                jobRole: req.body.jobRole,
+                followUpCompleted: req.body.followUpCompleted,
+                role: req.body.role,
+                salary: req.body.salary,
                 cvVersion: req.body.cvVersion,
             },
         });
+
+        // Add to timeline if status changed
+        if (req.body.status && req.body.status !== existing.status) {
+            await prisma.applicationUpdate.create({
+                data: {
+                    applicationId: application.id,
+                    note: `Status updated to ${req.body.status}`
+                }
+            });
+        }
+
         res.json(application);
     } catch (error) {
         res.status(500).json({ error: "Failed to update application" });
+    }
+});
+
+// ADD Timeline Update
+app.post("/api/applications/:id/updates", authenticateJWT, async (req, res) => {
+    try {
+        const { note } = req.body;
+        if (!note) return res.status(400).json({ error: "Note is required" });
+
+        const appId = parseInt(req.params.id);
+        const application = await prisma.application.findFirst({
+            where: { id: appId, userId: req.user.id }
+        });
+        if (!application) return res.status(404).json({ error: "Application not found" });
+
+        const update = await prisma.applicationUpdate.create({
+            data: {
+                applicationId: appId,
+                note
+            }
+        });
+        res.status(201).json(update);
+    } catch (error) {
+        res.status(500).json({ error: "Failed to add update" });
+    }
+});
+
+// GET Timeline Updates
+app.get("/api/applications/:id/updates", authenticateJWT, async (req, res) => {
+    try {
+        const appId = parseInt(req.params.id);
+        const updates = await prisma.applicationUpdate.findMany({
+            where: {
+                applicationId: appId,
+                application: { userId: req.user.id }
+            },
+            orderBy: { createdAt: 'desc' }
+        });
+        res.json(updates);
+    } catch (error) {
+        res.status(500).json({ error: "Failed to fetch updates" });
     }
 });
 

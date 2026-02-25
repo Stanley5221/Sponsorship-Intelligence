@@ -6,6 +6,15 @@ datasource db {
   provider = "postgresql"
 }
 
+enum ApplicationStatus {
+  APPLIED
+  INTERVIEW
+  OFFER
+  REJECTED
+  NO_RESPONSE
+  WITHDRAWN
+}
+
 model Company {
   id            Int           @id @default(autoincrement())
   name          String
@@ -13,12 +22,18 @@ model Company {
   county        String?
   postcode      String?
   licenceNumber String?       @unique
+  industry      String?
+  website       String?
+  logoUrl       String?
+  isExternal    Boolean       @default(false)
+  createdBy     Int?
   route         String?
   rating        String?
   fullRating    String?
   latitude      Float?
   longitude     Float?
   createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
   applications  Application[]
 }
 
@@ -31,18 +46,31 @@ model User {
 }
 
 model Application {
-  id           Int       @id @default(autoincrement())
-  companyId    Int
-  userId       Int?
-  jobRole      String
-  dateApplied  DateTime
-  status       String
-  notes        String?
-  followUpDate DateTime?
-  cvVersion    String?
-  createdAt    DateTime  @default(now())
-  company      Company   @relation(fields: [companyId], references: [id])
-  user         User?     @relation(fields: [userId], references: [id])
+  id                Int                 @id @default(autoincrement())
+  companyId         Int
+  userId            Int
+  role              String
+  status            ApplicationStatus   @default(APPLIED)
+  appliedDate       DateTime            @default(now())
+  followUpDate      DateTime?
+  followUpCompleted Boolean             @default(false)
+  salary            String?
+  externalWebsite   String?
+  notes             String?             @db.Text
+  cvVersion         String?
+  createdAt         DateTime            @default(now())
+  updatedAt         DateTime            @updatedAt
+  company           Company             @relation(fields: [companyId], references: [id])
+  user              User                @relation(fields: [userId], references: [id])
+  updates           ApplicationUpdate[]
+}
+
+model ApplicationUpdate {
+  id            Int         @id @default(autoincrement())
+  applicationId Int
+  note          String      @db.Text
+  createdAt     DateTime    @default(now())
+  application   Application @relation(fields: [applicationId], references: [id], onDelete: Cascade)
 }
 
 model ImportLog {
@@ -53,3 +81,4 @@ model ImportLog {
   error     String?
   createdAt DateTime @default(now())
 }
+
