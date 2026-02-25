@@ -435,6 +435,18 @@ app.post("/api/admin/populate-geo", async (req, res) => {
     }
 });
 
+// GET Last Import Stats
+app.get("/api/stats/last-import", async (req, res) => {
+    try {
+        const lastImport = await prisma.importLog.findFirst({
+            orderBy: { createdAt: 'desc' }
+        });
+        res.json(lastImport || { createdAt: new Date(), status: 'DEFAULT', count: 0 });
+    } catch (error) {
+        res.status(500).json({ error: "Failed to fetch import stats" });
+    }
+});
+
 // GET One Application
 app.get("/api/applications/:id", authenticateJWT, async (req, res) => {
     try {
