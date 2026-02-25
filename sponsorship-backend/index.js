@@ -128,19 +128,27 @@ app.post("/api/auth/login", async (req, res) => {
 app.get("/api/diag", async (req, res) => {
     try {
         const count = await prisma.company.count();
-        const sample = await prisma.company.findFirst();
+
+        // Let's also check column names directly via SQL to see what's actually in there
+        const columns = await pool.query(`
+            SELECT column_name, data_type 
+            FROM information_schema.columns 
+            WHERE table_name = 'Company'
+        `);
+
         res.json({
             success: true,
             count,
-            sample: sample ? { id: sample.id, name: sample.name } : null,
+            db_columns: columns.rows,
             env: process.env.NODE_ENV,
             timestamp: new Date()
         });
     } catch (error) {
         res.status(500).json({
             success: false,
-            error: error.message,
-            stack: process.env.NODE_ENV === 'production' ? undefined : error.stack
+            error: "Diagnostic failed",
+            message: error.message,
+            stack: error.stack
         });
     }
 });
