@@ -1,6 +1,8 @@
-require("dotenv").config();
 const express = require("express");
 const cors = require("cors");
+const helmet = require("helmet");
+const morgan = require("morgan");
+const { rateLimit } = require("express-rate-limit");
 const cron = require('node-cron');
 const importCSV = require('./scripts/import_csv');
 const path = require('path');
@@ -8,6 +10,24 @@ const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const { authenticateJWT, JWT_SECRET } = require('./middleware/authMiddleware');
 const app = express();
+
+// Security Headers
+app.use(helmet());
+
+// Logging
+app.use(morgan(process.env.NODE_ENV === 'production' ? 'combined' : 'dev'));
+
+// Rate Limiting
+const limiter = rateLimit({
+    windowMs: 15 * 60 * 1000, // 15 minutes
+    limit: 100, // Limit each IP to 100 requests per `window`
+    standardHeaders: 'draft-7',
+    legacyHeaders: false,
+    message: { error: "Too many requests, please try again later." }
+});
+
+// Apply rate limiter to all API routes
+app.use("/api/", limiter);
 
 // Prisma 7 setup with PostgreSQL adapter
 const { Pool } = require("pg");
@@ -369,9 +389,19 @@ app.get("/", (req, res) => {
 
 // Global Error Handler
 app.use((err, req, res, next) => {
+    // Log the full error on the server
     console.error(`[ERROR] ${new Date().toISOString()}:`, err.stack);
 
     const statusCode = err.status || 500;
+
+    // Customize response based on error type if needed
+    if (err.name === 'PrismaClientKnownRequestError') {
+        return res.status(400).json({
+            error: 'Database constraint violation',
+            timestamp: new Date()
+        });
+    }
+
     res.status(statusCode).json({
         error: process.env.NODE_ENV === 'production'
             ? 'An internal server error occurred'
