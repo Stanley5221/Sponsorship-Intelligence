@@ -1,4 +1,4 @@
-// Forced restart for Prisma Client update
+require("dotenv").config();
 const express = require("express");
 const cors = require("cors");
 const cron = require('node-cron');
@@ -8,7 +8,6 @@ const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const { authenticateJWT, JWT_SECRET } = require('./middleware/authMiddleware');
 const app = express();
-require("dotenv").config();
 
 // Prisma 7 setup with PostgreSQL adapter
 const { Pool } = require("pg");
