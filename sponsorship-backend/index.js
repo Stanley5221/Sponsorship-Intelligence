@@ -127,19 +127,26 @@ app.post("/api/auth/login", async (req, res) => {
 // Diagnostic endpoint for production
 app.get("/api/diag", async (req, res) => {
     try {
-        const count = await prisma.company.count();
+        const companyCount = await prisma.company.count();
+        const applicationCount = await prisma.application.count();
 
-        // Let's also check column names directly via SQL to see what's actually in there
-        const columns = await pool.query(`
+        const companyCols = await pool.query(`
             SELECT column_name, data_type 
             FROM information_schema.columns 
             WHERE table_name = 'Company'
         `);
 
+        const appCols = await pool.query(`
+            SELECT column_name, data_type 
+            FROM information_schema.columns 
+            WHERE table_name = 'Application'
+        `);
+
         res.json({
             success: true,
-            count,
-            db_columns: columns.rows,
+            counts: { companies: companyCount, applications: applicationCount },
+            company_columns: companyCols.rows,
+            application_columns: appCols.rows,
             env: process.env.NODE_ENV,
             timestamp: new Date()
         });
