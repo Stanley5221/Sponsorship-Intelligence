@@ -380,14 +380,23 @@ app.use((err, req, res, next) => {
     });
 });
 
-app.listen(port, () => {
-    const JWT_SECRET = process.env.JWT_SECRET;
-    const NODE_ENV = process.env.NODE_ENV;
-
-    if (!JWT_SECRET && NODE_ENV === 'production') {
-        console.warn('⚠️ WARNING: JWT_SECRET is missing in production environment!');
-    }
-
-    const SECRET = JWT_SECRET || 'dev-secret-key-only';
+app.listen(port, async () => {
     console.log(`🚀 Server running on port ${port}`);
+
+    // Initial Data Seed Check
+    try {
+        const count = await prisma.company.count();
+        if (count === 0) {
+            console.log('🌱 Database is empty. Starting initial seed in background...');
+            const csvPath = path.join(__dirname, 'UKVI.csv');
+            // Run in background so we don't block server readiness
+            importCSV(csvPath).catch(err => {
+                console.error('❌ Background seeding failed:', err);
+            });
+        } else {
+            console.log(`📊 Database already contains ${count} companies.`);
+        }
+    } catch (err) {
+        console.error('⚠️ Could not check database status:', err.message);
+    }
 });
