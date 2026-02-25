@@ -154,11 +154,14 @@ app.get("/api/companies", async (req, res) => {
     const limitNum = Math.min(100, Math.max(1, parseInt(limit) || 12));
 
     const where = {};
-    if (town) where.town = { contains: town, mode: "insensitive" };
-    if (route) where.route = { contains: route, mode: "insensitive" };
-    if (rating) where.rating = rating;
+    // Only add filters if they are provided and non-empty
+    if (town && town.trim() !== '') where.town = { contains: town.trim(), mode: "insensitive" };
+    if (route && route.trim() !== '') where.route = { contains: route.trim(), mode: "insensitive" };
+    if (rating && rating.trim() !== '') where.rating = rating.trim();
 
     try {
+        console.log(`[QUERY] Fetching companies: page=${pageNum}, limit=${limitNum}, where=${JSON.stringify(where)}`);
+
         const [companies, total] = await Promise.all([
             prisma.company.findMany({
                 where,
@@ -555,9 +558,8 @@ app.use((err, req, res, next) => {
     }
 
     res.status(statusCode).json({
-        error: process.env.NODE_ENV === 'production'
-            ? 'An internal server error occurred'
-            : err.message,
+        error: 'An internal server error occurred',
+        message: err.message,
         timestamp: new Date()
     });
 });
